@@ -13,7 +13,7 @@ from planejade import search
 import corner
 import matplotlib.pyplot as plt
 result = search(time, flux, yerr, bounds=None)
-print("Evidence:", result.evidence)
+print("Evidence:", result.diagnostics)
 cornerplot = corner.corner(result.flatchain, labels=result.var_names)
 plt.plot(time, result.model)
 ```
