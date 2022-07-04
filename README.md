@@ -17,7 +17,7 @@ import corner
 import matplotlib.pyplot as plt
 result = search(time, flux, yerr, bounds=None)
 print(result.diagnostics)
-cornerplot = corner.corner(result.flatchain, labels=result.var_names)
+cornerplot = corner.corner(result.chain, labels=result.var_names)
 plt.plot(time, result.model)
 plt.scatter(time, result.flux)
 ```
