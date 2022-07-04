@@ -1,7 +1,7 @@
 Plan-e-JADE
 ====================
 
-Optimal sensitivity for planet transit search with simultaneous stellar noise detrending and ensemble differential evolution.
+Optimal sensitivity for your exoplanet transit search with simultaneous stellar noise detrending.
 
 >Fit a full Mandel-Agol transit model to the data & simultaneously a wōtan biweight filter to remove stellar trends. Search by iterative fitting with an ensemble differential evolution network. Provides posterior diagnostics and cornerplots.
 
