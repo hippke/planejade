@@ -5,6 +5,19 @@ Optimal sensitivity for planet transit search with ensemble differential evoluti
 
 >This new method offers perfect sensitivity: Plan-e-JADE fits a full Mandel-Agol 9-parameter transit model to the data, simultaneously with a wotan biweight filter to remove stellar trends. Search is done by iterative fitting with an ensemble differential evolution network.
 
+Install with ``pip install planejade``
+
+Minimal example:
+```
+from planejade import search
+import corner
+import matplotlib.pyplot as plt
+result = search(time, flux, yerr, bounds=None)
+print("Evidence:", result.evidence)
+cornerplot = corner.corner(result.flatchain, labels=result.var_names)
+plt.plot(time, result.model)
+```
+
 The combined model is even more sensitive than [TLS](https://github.com/hippke/tls) (which is more sensitive than BLS). While TLS uses a realistic transit shape including limb darkening, its transit model is fixed for an entire search. Deviations between the assumed and the true transit shape reduce the sensitivity. Separate detrending lead to compromises: Too short filter lengths destroy part of the transit signal, too long filters do not reduce all stellar variability. The combined approach is the perfect solution. 
 
 For reference, in a classical transit search the procedure is to:
@@ -24,17 +37,5 @@ Q: How's that possible? A:
 
 Code: Open source (GPL3), pure Python (compiled with numba and Cython)
 
-Install with ``pip install planejade``
 
-Minimal example:
-
-```
-from planejade import search
-import corner
-import matplotlib.pyplot as plt
-result = search(time, flux, yerr, bounds=None)
-print("Evidence:", result.evidence)
-cornerplot = corner.corner(result.flatchain, labels=result.var_names)
-plt.plot(time, result.model)
-```
 
