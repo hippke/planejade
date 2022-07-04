@@ -3,6 +3,8 @@ Plan-e-JADE
 
 Optimal sensitivity for your exoplanet transit search with simultaneous stellar noise detrending.
 
+[![pip](https://img.shields.io/badge/pip-install%20planejade-blue.svg)](https://pypi.org/project/planejade/)
+
 >Fit a full Mandel-Agol transit model to the data & simultaneously a wōtan biweight filter to remove stellar trends. Search by iterative fitting with an ensemble differential evolution network. Provides posterior diagnostics and cornerplots.
 
 ## Install
