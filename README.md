@@ -1,4 +1,4 @@
-Plan-e-JADE
+Plan-e-JADE (under construction)
 ====================
 
 Optimal sensitivity for your exoplanet transit search with simultaneous stellar noise detrending.
