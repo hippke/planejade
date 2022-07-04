@@ -8,7 +8,7 @@ Optimal sensitivity for your exoplanet transit search with simultaneous stellar 
 [![Image](https://img.shields.io/badge/Examples-%E2%9C%93-blue.svg)](https://github.com/hippke/planejade/tree/main/examples)
 [![Image](https://img.shields.io/badge/arXiv-2205.09410-blue.svg)](https://arxiv.org/abs/2205.09410)
 
->Fit a full Mandel-Agol transit model to the data & simultaneously a wōtan biweight filter to remove stellar trends. Search by iterative fitting with an ensemble differential evolution network. Provides posterior diagnostics and cornerplots.
+>Fit a full Mandel-Agol transit model to the data & simultaneously a wōtan biweight filter to remove stellar trends. Search by iterative fitting with an ensemble differential evolution network. Obtain posterior diagnostics and cornerplots.
 
 ## Install
 ``pip install planejade``
