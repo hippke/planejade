@@ -15,10 +15,11 @@ Optimal sensitivity for your exoplanet transit search with simultaneous stellar 
 from planejade import search
 import corner
 import matplotlib.pyplot as plt
-result = search(time, flux, yerr, bounds=None)
-print("Evidence:", result.diagnostics)
-cornerplot = corner.corner(result.flatchain, labels=result.var_names)
-plt.plot(time, result.model)
+result = search(time, flux, yerr, bounds=None)  # Run a blind search on your data
+print("Evidence:", result.diagnostics)  # Transit posteriors, false-alarm probability, etc.
+cornerplot = corner.corner(result.flatchain, labels=result.var_names)  # Make 9-parameter cornerplot
+plt.plot(time, result.model)  # Plot posterior transit model
+plt.scatter(time, result.flux)  # Plot posterior transit data
 ```
 
 The combined model is even more sensitive than [TLS](https://github.com/hippke/tls) (which is more sensitive than BLS). While TLS uses a realistic transit shape including limb darkening, its transit model is fixed for an entire search. Deviations between the assumed and the true transit shape reduce the sensitivity. Separate detrending lead to compromises: Too short filter lengths destroy part of the transit signal, too long filters do not reduce all stellar variability. The combined approach is the perfect solution. 
