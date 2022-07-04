@@ -29,7 +29,7 @@ Minimal example:
 from planejade import search
 import corner
 import matplotlib.pyplot as plt
-result = search(time, flux, yerr, 
+result = search(time, flux, yerr, bounds=None)
 cornerplot = corner.corner(result.flatchain, labels=result.var_names)
 plt.plot(time, result.model)
 ``
