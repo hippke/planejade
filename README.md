@@ -40,7 +40,9 @@ What makes Plan-e-JADE so much faster?
 - Ultra-fast detrending with the [biweight](https://github.com/hippke/wotan/blob/master/tutorials/02%20Sliders.ipynb) filter from [wotan](https://github.com/hippke/wotan)
 - Complete light curve search with ensemble differential evolution (e-JADE), requiring $\mathcal{O}(10^7)$ model evaluations for convergence. Find planets in Kepler and TESS in a few minutes with optimal sensitivity.
 
-Code: Open source (GPL3), pure Python (compiled with numba and Cython)
+### Code
+Pure Python, compiled with numba and Cython for maximum speed
+Open source license: GPLv3
 
 
 ### Attribution
