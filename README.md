@@ -16,6 +16,6 @@ Speed. It was computationally prohibitive (link to Petascale computing).
 Now possible on your laptop <performance metric here>
 H
 How's that possible?
-- Ultra-fast transit model (from Pandora)
-- Ultra-fast combination with biweight wotan (link)
+- Ultra-fast transit model (from [Pandora](https://github.com/hippke/pandora))
+- Ultra-fast detrending with the [biweight]([https://github.com/hippke/wotan/blob/master/examples/biweight.ipynb](https://github.com/hippke/wotan/blob/master/tutorials/02%20Sliders.ipynb)) filter from [wotan](https://github.com/hippke/wotan)
 - eJADE
