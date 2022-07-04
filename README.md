@@ -24,7 +24,8 @@ For reference, in a classical transit search the procedure is to:
 1. Remove stellar trends e.g. with [wotan](https://github.com/hippke/wotan)
 2. Search for transits e.g. with [TLS](https://github.com/hippke/tls)
 3. Fit full transit model and create posterior e.g. with emcee
-Plan-e-JADE combines all of these.
+
+*Plan-e-JADE combines all of these.*
 
 ### Q&A
 Q: Why hasn't everybody searched with a full transit models and combined trend filtering?
