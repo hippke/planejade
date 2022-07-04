@@ -1,9 +1,9 @@
 Plan-e-JADE
 ====================
 
-Optimal sensitivity for planet transit search with ensemble differential evolution and simultaneous stellar noise detrending
+Optimal sensitivity for planet transit search with simultaneous stellar noise detrending and ensemble differential evolution.
 
->This new method offers perfect sensitivity: Plan-e-JADE fits a full Mandel-Agol 9-parameter transit model to the data, simultaneously with a wotan biweight filter to remove stellar trends. Search is done by iterative fitting with an ensemble differential evolution network.
+>Fit a full Mandel-Agol transit model to the data & simultaneously a wōtan biweight filter to remove stellar trends. Search by iterative fitting with an ensemble differential evolution network. Provides posterior diagnostics and cornerplots.
 
 Install with ``pip install planejade``
 
