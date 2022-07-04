@@ -38,7 +38,7 @@ This should already be best-practice!?
 What makes Plan-e-JADE so much faster?
 - Ultra-fast transit model from [Pandora](https://github.com/hippke/pandora) with $7\times10^8$ data points per second on an AMD Ryzen 5950X
 - Ultra-fast detrending with the [biweight](https://github.com/hippke/wotan/blob/master/tutorials/02%20Sliders.ipynb) filter from [wotan](https://github.com/hippke/wotan)
-- Complete light curve search with ensemble differential evolution (e-JADE), requiring $10^7$ models for convergence. Find planets in Kepler and TESS in a few minutes with optimal sensitivity.
+- Complete light curve search with ensemble differential evolution (e-JADE), requiring $\mathcal{O}(10^7)$ model evaluations for convergence. Find planets in Kepler and TESS in a few minutes with optimal sensitivity.
 
 Code: Open source (GPL3), pure Python (compiled with numba and Cython)
 
