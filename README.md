@@ -28,11 +28,11 @@ For reference, in a classical transit search the procedure is to:
 *Plan-e-JADE combines all of these.*
 
 ### Q&A
-Q: Why hasn't everybody searched with a full transit models and combined trend filtering?
-- A: Speed. It was computationally prohibitive (link to Petascale computing). Now it's possible on your laptop computer.
+This should already be best-practice!?
+- A: In the past, you needed a [supercomputer](https://ui.adsabs.harvard.edu/abs/2020AJ....159..283T/abstract) for a full search. Now it's possible on your laptop computer.
 
-Q: How's that possible? A:
-- Ultra-fast transit model from [Pandora](https://github.com/hippke/pandora)
+What makes Plan-e-JADE so much faster?
+- Ultra-fast transit model from [Pandora](https://github.com/hippke/pandora), $7\times10^8$ data points per second
 - Ultra-fast detrending with the [biweight](https://github.com/hippke/wotan/blob/master/tutorials/02%20Sliders.ipynb) filter from [wotan](https://github.com/hippke/wotan)
 - Complete light curve search with ensemble differential evolution (e-JADE) 
 
