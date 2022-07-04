@@ -5,9 +5,10 @@ Optimal sensitivity for your exoplanet transit search with simultaneous stellar 
 
 >Fit a full Mandel-Agol transit model to the data & simultaneously a wōtan biweight filter to remove stellar trends. Search by iterative fitting with an ensemble differential evolution network. Provides posterior diagnostics and cornerplots.
 
-Install with ``pip install planejade``
+## Install
+``pip install planejade``
 
-Minimal example:
+## Minimal example:
 ```
 from planejade import search
 import corner
