@@ -10,7 +10,7 @@ Optimal sensitivity for your exoplanet transit search with simultaneous stellar 
 
 >Fit a full Mandel-Agol transit model to the data & simultaneously a wōtan biweight filter to remove stellar trends. Search by iterative fitting with an ensemble differential evolution network. Obtain posterior diagnostics and cornerplots.
 
-## Minimal example for blind search, cornerplot, diagnostics, and posterior model:
+### Minimal example for blind search, cornerplot, diagnostics, and posterior model:
 ```
 from planejade import search
 import corner
