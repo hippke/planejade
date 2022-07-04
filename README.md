@@ -39,4 +39,9 @@ What makes Plan-e-JADE so much faster?
 Code: Open source (GPL3), pure Python (compiled with numba and Cython)
 
 
-
+### Attribution
+Please cite Hippke et al. (2022) if you find this code useful in your research. The BibTeX entry for the paper is:
+```
+@article{
+}
+```
