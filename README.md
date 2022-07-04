@@ -14,8 +14,7 @@ Plan-e-JADE combines all of these.
 
 ### Q&A
 Q: Why hasn't everybody searched with a full transit models and combined trend filtering?
-
-A: Speed. It was computationally prohibitive (link to Petascale computing). Now it's possible on your laptop computer.
+- A: Speed. It was computationally prohibitive (link to Petascale computing). Now it's possible on your laptop computer.
 
 Q: How's that possible? A:
 - Ultra-fast transit model from [Pandora](https://github.com/hippke/pandora)
