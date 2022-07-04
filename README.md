@@ -1,8 +1,8 @@
-#Plan-e-JADE
+Plan-e-JADE
+====================
 
 
-
-##Exoplanet transit search with ensemble differential evolution and simultaneous stellar noise detrending
+## Exoplanet transit search with ensemble differential evolution and simultaneous stellar noise detrending
 
 ### Perfect sensitivity for planet search
 This new method offers perfect sensitivity: Plan-e-JADE fits a full Mandel-Agol 9-parameter transit model to the data, simultaneously with a wotan biweight filter to remove stellar trends. Search is done by iterative fitting with eJADE, an ensemble differential evolution network.
