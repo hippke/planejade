@@ -22,7 +22,7 @@ plt.plot(time, result.model)
 plt.scatter(time, result.flux)
 ```
 
-The combined model is even more sensitive than [TLS](https://github.com/hippke/tls) (which is more sensitive than BLS). While TLS uses a realistic transit shape including limb darkening, its transit model is fixed for an entire search. Deviations between the assumed and the true transit shape reduce the sensitivity. Separate detrending lead to compromises: Too short filter lengths destroy part of the transit signal, too long filters do not reduce all stellar variability. The combined approach is the perfect solution. 
+The combined model is even more sensitive than [TLS](https://github.com/hippke/tls) (which is more sensitive than BLS). While TLS uses a realistic transit shape including limb darkening, its transit model is fixed for an entire search. Deviations between the assumed and the true transit shape reduce the sensitivity. Separate detrending lead to compromises: Too short filter lengths destroy part of the transit signal, too long filters do not remove all stellar variability. The combined approach is the perfect solution. 
 
 For reference, in a classical transit search the procedure is to:
 1. Remove stellar trends e.g. with [wotan](https://github.com/hippke/wotan)
