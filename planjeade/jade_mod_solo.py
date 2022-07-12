@@ -1,22 +1,21 @@
 import numpy as np
-from numba import jit
+from numba import jit, prange
 import time as ttime
 from tqdm import tqdm
 import random
 import re
+import matplotlib.pyplot as plt
+
+MAX_INT = 4294967295
+CONST = 4 * np.exp(-0.5) / np.sqrt(2)
 
 
-def intWithCommas(x):
+def int_commas(x):
     result = ''
     while x >= 1000:
         x, r = divmod(x, 1000)
         result = ",%03d%s" % (r, result)
     return "%d%s" % (x, result)
-
-
-
-MAX_INT = 4294967295
-CONST = 4 * np.exp(-0.5) / np.sqrt(2)
 
 
 # Random numbers from getrandbits are 10x faster than single numpy calls
@@ -53,26 +52,18 @@ def clip(min_, max_, val):
     return max(min_, min(max_, val))
 
 
-@jit(cache=False, nopython=True, fastmath=True, parallel=False)
+@jit(cache=False, nopython=True, fastmath=True, parallel=True)
 def eval_func(pop, fit, fitness):
-    for ind in range(pop.shape[0]):
-        fit[ind] = fitness(pop[ind])
+    for idx in prange(pop.shape[0]):
+        fit[idx] = fitness(pop[idx])
     return fit
 
 
 @jit(cache=False, nopython=True, fastmath=True, parallel=False)
-def best_k_func(k, k_high, fit):
-    if k < 2:
-        return np.argmax(fit)
-    if k_high is None:
-        k_high = np.argsort(fit)[:-k-1:-1]
-    idx = rand_int(k)
-    return k_high[idx]
-
-
-@jit(cache=False, nopython=True, fastmath=True, parallel=False)
 def generate_trial_func(pop, trial, limits, n_pop, n_dim, p, cr, f, cr_arr, f_arr, fit):
-    pbest_i = best_k_func(int(p * n_pop), None, fit)
+    k = int(p * n_pop)
+    k_high = np.argsort(fit)[:-k-1:-1]
+    pbest_i = k_high[rand_int(k)]
     for i in range(n_pop):
         r1 = rand_int(n_pop)
         r2 = rand_int(n_pop)
@@ -87,23 +78,24 @@ def generate_trial_func(pop, trial, limits, n_pop, n_dim, p, cr, f, cr_arr, f_ar
         f_arr[i] = f_i
         for d in range(n_dim):
             if rand_normal() < cr_i or d == always:
-                val = (pop[i, d] +
+                v = (pop[i, d] +
                        f_i*(pop[pbest_i, d] - pop[i, d]) +
                        f_i*(pop[r1, d] - pop[r2, d]))
             else:
-                val = pop[i, d]
-            trial[i, d] = clip(limits[0][d, 0], limits[0][d, 1], val)
+                v = pop[i, d]
+            trial[i, d] = clip(limits[0][d, 0], limits[0][d, 1], v)
 
 
 class JADE:
 
-    def __init__(self, fitness, n_dim, n_pop, limits, batch_id):
+    def __init__(self, fitness, n_dim, n_pop, limits, batch_id, n_it, c=0.01):
         self.batch_id = batch_id
         self.counter = 0
+        self.n_pop = n_pop
 
         # JADE parameters
         self.p = 0.1
-        self.c = 0.01
+        self.c = c  # 0.01 for moons, 0.1 for planets??
 
         # current means (u_cr and u_f in the literature)
         self.cr = 0.5
@@ -156,8 +148,14 @@ class JADE:
 
 
     def run(self, n_it=1000):
+        verlauf = []
+        list_logls = np.zeros((n_it, len(self.pop)))
+        list_periods = np.copy(list_logls)
+        #print(list_logls)
+        #list_logls = []
+        #list_periods = []
         self.k_high = None 
-        pbar = tqdm(total=1000, position=self.batch_id)
+        pbar = tqdm(total=n_it)#, position=self.batch_id)
         for iteration in range(n_it):
 
             #t1 = ttime.perf_counter()
@@ -174,10 +172,35 @@ class JADE:
             #print(min(self.fit))
             pbar.update(1)
             ncall = len(self.pop) * (1 + iteration)
-            #print("ncall", ncall)
-            s = intWithCommas(ncall)
-            #s = sep(ncall, thou=".", dec=",")
-            pbar.set_postfix({'ncall': s, "fit": str(round(max(-self.fit), 10))})
-        besti = best_k_func(1, self.k_high, self.fit)
+            pbar.set_postfix({'ncall': int_commas(ncall), "fit": str(round(max(-self.fit), 10))})
+            best_in_iter = max(-self.fit)
+            verlauf.append(best_in_iter)
+            no_change_iters = 100  # if no change after 100 iterations, then converged
+            look_back = iteration - no_change_iters
+            if look_back < 0:
+                look_back = 0
+            if best_in_iter == verlauf[look_back] and iteration > no_change_iters:
+                #print("Stop: No change after 50 iters")
+                break
+
+            periods = self.trial[:,0]
+            #print("periods", periods)
+            #print(self.fit)
+            #print("len", len(self.fit))
+            list_logls[iteration][:] = self.fit
+            list_periods[iteration][:] = periods
+            #list_logls.append(self.fit)
+            #list_periods.append(periods)
+            #print(iteration, self.fit)
+            #for idx in range(len(periods)):
+            #    print(periods[idx], self.fit[idx])
+            #fitnesses = self.fitness()
+            #breal
+
+            #besti = np.argmax(self.fit)
+            #print(iteration, self.trial[besti][0], self.fitness(self.pop[besti]))
+        besti = np.argmax(self.fit)#best_k_func(1, self.k_high, self.fit)
+        print(self.c, self.n_pop, self.trial[besti], iteration, self.fitness(self.pop[besti]))#, end='')
         pbar.close()
-        return self.pop[besti], self.fit[besti]
+        
+        return self.pop[besti], verlauf, list_logls, list_periods

@@ -136,7 +136,7 @@ def fit_ultranest(time, flux, yerr, bounds, live_points):
     return result
 
 
-def fit(time, flux, yerr, bounds=None, moon=True, live_points=750, batches=64):
+def fit(time, flux, yerr, n_it, bounds=None, moon=True, live_points=750, batches=64, c=0.1):
 
     @jit(cache=True, nopython=True, fastmath=True, parallel=False)
     def energy(p):
@@ -172,13 +172,15 @@ def fit(time, flux, yerr, bounds=None, moon=True, live_points=750, batches=64):
         loglike = -0.5 * np.nansum(((flatten_lc-1) / yerr)**2)
         """
         loglike = -0.5 * np.nansum(((flux-f) / yerr)**2)
+        #loglike = -np.sum(((flux - f) / yerr)**2)
+        #print(loglike)
         #print("loglike", loglike)
         #print(p[0], loglike)
         return loglike
 
     def run_one_batch(batch_id):
         # Need to re-seed each function call inside pool
-        np.random.seed(int.from_bytes(os.urandom(4), byteorder='little'))
+        #np.random.seed(int.from_bytes(os.urandom(4), byteorder='little'))
         """
         solver = pyfde.JADE(
             energy,
@@ -192,17 +194,20 @@ def fit(time, flux, yerr, bounds=None, moon=True, live_points=750, batches=64):
         solver = JADE(
             log_likelihood,
             n_dim=ndim,
-            n_pop=1000,
+            n_pop=live_points,
             limits=bounds,
-            batch_id=batch_id
+            n_it=n_it,
+            batch_id=batch_id,
+            c=c
             )
         
-        solver.c = 0.01    # adaption parameter. Default 0.1. About 1.6x better to use 0.01
-        iterations = 1_000  # 2000 is a good trade-off
-        popt = solver.run(n_it=iterations)
-        result = popt[0]
+        #solver.c = 0.01    # adaption parameter. Default 0.1. About 1.6x better to use 0.01
+        iterations = n_it  # 2000 is a good trade-off
+        result, verlauf, list_logls, list_periods = solver.run(n_it=iterations)
+        #result = popt[0]
+        
         evals = popsize * iterations
-        return (log_likelihood(result), result, evals)
+        return (log_likelihood(result), result, evals, verlauf, list_logls, list_periods)
 
     # Bounds for planet-only model
     planet_bounds = {
@@ -221,16 +226,19 @@ def fit(time, flux, yerr, bounds=None, moon=True, live_points=750, batches=64):
 
     planet_bounds.update(bounds)
     bounds = list(planet_bounds.values())
-    print("bounds", bounds)
+    #print("bounds", bounds)
     ndim = 7
 
     popsize = int(live_points / ndim)  # popsize is live_points / ndim e.g. 750/15=50
     nobs = len(flux)
     cores = int(multiprocessing.cpu_count())
-    print("Search running. Wait for first update. Using all CPU threads:", cores)
+    #print("Search running. Wait for first update. Using all CPU threads:", cores)
     rlist_ll = []
     rlist_popt = []
     rlist_evals = []
+    rlist_verlauf = []
+    list_logls = []
+    list_periods = []
     batch_list = np.linspace(1, batches, batches, dtype="int")
     pool = Pool(cores)
     pool.restart()
@@ -239,13 +247,83 @@ def fit(time, flux, yerr, bounds=None, moon=True, live_points=750, batches=64):
         rlist_ll.append(data[0])
         rlist_popt.append(data[1])
         rlist_evals.append(data[2])
+        rlist_verlauf.append(data[3])
+        list_logls.append(data[4])
+        list_periods.append(data[5])
         #pbar.update(1)
         #pbar.set_postfix({'ncall': np.sum(rlist_evals), 'logl': str(round(np.max(rlist_ll), 2))})
     pool.close()
     pool.join() 
     #pbar.close()
     best_logl = max(rlist_ll)
-    no_points = len(flux)
+    no_points = len(flux)#[0]
+
+    #print(list_logls)
+    #print(list_logls)
+    #list_periods = [x for xs in list_periods for x in xs]
+    #list_logls = [x for xs in list_logls for x in xs]
+    #list_logls = np.array(list_logls).flatten()
+    #list_periods = np.array(list_periods).flatten()
+    #list_periods = np.sort(list_periods)
+    #arr1inds = list_periods.argsort()
+    #list_logls = list_logls[arr1inds]
+    list_logls = [x for xs in list_logls for x in xs]
+    list_logls = np.array(list_logls)
+    list_logls = list_logls.flatten()
+
+    list_periods = [x for xs in list_periods for x in xs]
+    list_periods = np.array(list_periods)
+    list_periods = list_periods.flatten()
+
+    #list_periods = np.sort(list_periods)
+    arr1inds = list_periods.argsort()
+    list_logls = list_logls[arr1inds]
+    list_periods = list_periods[arr1inds]
+
+    print(len(list_logls))
+    print(max(list_logls))
+    print(min(list_logls))
+
+    step = 0.1
+    period_grid = np.arange(1, 400, step=step)
+    logl_grid = np.zeros(len(period_grid))
+    for idx, period in enumerate(period_grid):
+        start = period - step/2
+        stop = period + step/2
+        indexes = np.where((list_periods > start) & (list_periods < stop))
+        if len(list_logls[indexes]) > 0:
+            current_max = np.max(list_logls[indexes])
+        else:
+            current_max = 0#np.nan
+        logl_grid[idx] = current_max
+        print(idx, period, start, stop, current_max)
+
+    # Scale logs
+    logl_grid += np.median(logl_grid)
+    #logl_grid /= np.nanmax(logl_grid)
+
+    plt.plot(period_grid, logl_grid)
+    #plt.yscale("log")
+    plt.show()
+
+    #print(list_logls)
+    plt.plot(list_periods, list_logls)
+    plt.show()
+
+
+    #list_logls = list_logls.ravel()  #[x for xs in list_logls for x in xs]
+    #list_periods = [x for xs in list_periods for x in xs]
+
+
+    #print(list_logls)
+
+    #plt.close()
+    #plt.clf()
+    #plt.plot(np.linspace(0, len(rlist_verlauf[0]), len(rlist_verlauf[0])), rlist_verlauf[0])
+    #plt.xscale("log")
+    #plt.yscale("log")
+    #plt.xlim(0, len(rlist_verlauf[0]))
+    #plt.show()
     BIC = ndim * np.log(no_points) - 2 * best_logl
     AIC = 2 * ndim - 2 * best_logl
     best_popt = rlist_popt[np.argmax(rlist_ll)]
@@ -258,15 +336,15 @@ def fit(time, flux, yerr, bounds=None, moon=True, live_points=750, batches=64):
     while t0 < min(time):
         t0 += period
     best_popt[4] = t0
-    print("phase", phase)
-    print("t0", t0)
+    #print("phase", phase)
+    #print("t0", t0)
 
     # Convert M_star to semimajor axis a
     M_star = best_popt[1]
     a = semimajor_axis(period, M_star)
     best_popt[1] = a
-    print("M_star", M_star)
-    print("a", a)
+    #print("M_star", M_star)
+    #print("a", a)
 
 
     q1 = best_popt[5]
