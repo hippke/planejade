@@ -15,7 +15,7 @@ from numba import jit
 # Create Pandora time grid and planet+moon model flux
 # We use a more functional approach here to ease feeding the posterior results 
 # into fresh light curves
-epoch_duration = 20#365.25
+epoch_duration = 365.25
 t0_bary = 11
 model_time = timegrid(
     t0_bary=t0_bary, 
@@ -42,9 +42,10 @@ M_ganymede = 1.5e23
 # r_planet=0.037 ==> SDE  9.2, SNR 7.8 - both OK
 # r_planet=0.035 ==> SDE  8.3, SNR 7.0 - both IK TLS OK (300-400d)
 # r_planet=0.032 ==> SDE  5.7, SNR 5.9 - 
+# ensemble vs. single run n_pop=2000, probability? try experiments
 
 # Create light curve based on the following parameter values and the time grid
-model_param_values = np.array([365.25, 215, 0.09, 0.3, 0, 0, 11.33, 0.4089, 0.2556])
+model_param_values = np.array([365.25, 215, 0.035, 0.3, 0, 0, 11.33, 0.4089, 0.2556])
 model_flux = lc(model_param_values, model_time)
 
 
@@ -305,7 +306,7 @@ result_planet_only = fit(
     bounds=bounds,
     moon=False,
     live_points=1000,
-    batches=2  # 32 appears to be sufficient  
+    batches=1  # 32 appears to be sufficient  
     )
 print("Maximum log-likelihood:", round(result_planet_only["logl"], 2))
 print("BIC:", round(result_planet_only["BIC"],2))

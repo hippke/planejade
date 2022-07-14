@@ -172,10 +172,10 @@ class JADE:
             #print(min(self.fit))
             pbar.update(1)
             ncall = len(self.pop) * (1 + iteration)
-            pbar.set_postfix({'ncall': int_commas(ncall), "fit": str(round(max(-self.fit), 10))})
-            best_in_iter = max(-self.fit)
+            pbar.set_postfix({'ncall': int_commas(ncall), "fit": str(round(min(self.fit), 10))})
+            best_in_iter = min(self.fit)
             verlauf.append(best_in_iter)
-            no_change_iters = 100  # if no change after 100 iterations, then converged
+            no_change_iters = 200  # if no change after 100 iterations, then converged
             look_back = iteration - no_change_iters
             if look_back < 0:
                 look_back = 0

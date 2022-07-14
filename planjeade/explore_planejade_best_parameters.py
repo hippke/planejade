@@ -38,9 +38,11 @@ M_earth = 6e24
 M_jup = 1.9e27
 M_ganymede = 1.5e23
 
-# r_planet=0.04  ==> SDE 10.5, SNR 9.1 - both OK
-# r_planet=0.037 ==> SDE  9.2, SNR 7.8 - both OK
-# r_planet=0.035 ==> SDE  8.3, SNR 7.0 - both IK TLS OK (300-400d)
+# r_planet=0.04  ==> SDE 10.5, SNR 9.1 - both OK // BIC 33.7
+# r_planet=0.037 ==> SDE  9.2, SNR 7.8 - both OK // BIC 7.5
+# r_planet=0.0365 ==> BIC 4.0
+# r_planet=0.036 ==> BIC 0.6 (wrong period with 8x500), 0.6 right period
+# r_planet=0.035 ==> SDE  8.3, SNR 7.0 - both OK TLS OK (300-400d) // BIC -4
 # r_planet=0.032 ==> SDE  5.7, SNR 5.9 - 
 # ensemble vs. single run n_pop=2000, probability? try experiments
 
@@ -165,7 +167,7 @@ for c in cs:
         moon=False,
         live_points=250,
         n_it=2000,
-        batches=1,
+        batches=4,
         c=c
         )
     #true_model = lc(model_param_values, model_time)
@@ -176,16 +178,14 @@ for c in cs:
 # perfect: 26141
 
 
-"""
 recovered_flux = lc(result_planet_only["points"], model_time)
 
 plt.clf()
 plt.close()
-polished = (testdata - recovered_flux) + 1
-flatten_lc, trend_lc = flatten(model_time, polished, window_length=0.3, method='biweight', return_trend=True)
-plt.scatter(model_time, flatten_lc, s=1, color="black")
+#polished = (testdata - recovered_flux) + 1
+#flatten_lc, trend_lc = flatten(model_time, polished, window_length=0.3, method='biweight', return_trend=True)
+plt.scatter(model_time, testdata, s=1, color="black")
 plt.plot(model_time, model_flux, color="blue")
 plt.plot(model_time, recovered_flux, color="red")
 
 plt.show()
-"""

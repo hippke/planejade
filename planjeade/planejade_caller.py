@@ -16,7 +16,198 @@ from scipy.ndimage.filters import uniform_filter1d
 import matplotlib.pyplot as plt
 from wotan import flatten
 from jade_mod_solo import JADE
+from tabulate import tabulate
 
+
+def count_stats(t, y, transit_times, transit_duration_in_days):
+    """Return:
+    * in_transit_count:     Number of data points in transit (phase-folded)
+    * after_transit_count:  Number of data points in a bin of transit duration, 
+                            after transit (phase-folded)
+    * before_transit_count: Number of data points in a bin of transit duration, 
+                            before transit (phase-folded)
+    """
+    in_transit_count = 0
+    after_transit_count = 0
+    before_transit_count = 0
+
+    for mid_transit in transit_times:
+        T0 = (
+            mid_transit - 1.5 * transit_duration_in_days
+        )  # start of 1 transit dur before ingress
+        T1 = mid_transit - 0.5 * transit_duration_in_days  # start of ingress
+        T4 = mid_transit + 0.5 * transit_duration_in_days  # end of egress
+        T5 = (
+            mid_transit + 1.5 * transit_duration_in_days
+        )  # end of egress + 1 transit dur
+
+        if T0 > min(t) and T5 < max(t):  # inside time
+            idx_intransit = np.where(np.logical_and(t > T1, t < T4))
+            idx_before_transit = np.where(np.logical_and(t > T0, t < T1))
+            idx_after_transit = np.where(np.logical_and(t > T4, t < T5))
+            points_in_this_in_transit = len(y[idx_intransit])
+            points_in_this_before_transit = len(y[idx_before_transit])
+            points_in_this_after_transit = len(y[idx_after_transit])
+
+            in_transit_count += points_in_this_in_transit
+            before_transit_count += points_in_this_before_transit
+            after_transit_count += points_in_this_after_transit
+
+    return in_transit_count, after_transit_count, before_transit_count
+
+
+def intransit_stats(t, y, transit_times, transit_duration_in_days):
+    """Return all intransit odd and even flux points"""
+
+    all_flux_intransit_odd = np.array([])
+    all_flux_intransit_even = np.array([])
+    all_flux_intransit = np.array([])
+    all_idx_intransit = np.array([])
+    per_transit_count = np.zeros([len(transit_times)])
+    transit_depths = np.zeros([len(transit_times)])
+    transit_depths_uncertainties = np.zeros([len(transit_times)])
+
+    for i in range(len(transit_times)):
+
+        depth_mean_odd = np.nan
+        depth_mean_even = np.nan
+        depth_mean_odd_std = np.nan
+        depth_mean_even_std = np.nan
+
+        mid_transit = transit_times[i]
+        tmin = mid_transit - 0.5 * transit_duration_in_days
+        tmax = mid_transit + 0.5 * transit_duration_in_days
+        if np.isnan(tmin) or np.isnan(tmax):
+            idx_intransit = []
+            flux_intransit = []
+            mean_flux = np.nan
+        else:
+            idx_intransit = np.where(np.logical_and(t > tmin, t < tmax))
+            flux_intransit = y[idx_intransit]
+            if len(y[idx_intransit]) > 0:
+                mean_flux = np.mean(y[idx_intransit])
+            else:
+                mean_flux = np.nan
+        intransit_points = np.size(y[idx_intransit])
+        transit_depths[i] = mean_flux
+        if len(y[idx_intransit] > 0):
+            transit_depths_uncertainties[i] = np.std(y[idx_intransit]) / np.sqrt(
+                intransit_points
+            )
+        else:
+            transit_depths_uncertainties[i] = np.nan
+        per_transit_count[i] = intransit_points
+
+        # Check if transit odd/even to collect the flux for the mean calculations
+        if i % 2 == 0:  # even
+            all_flux_intransit_even = np.append(
+                all_flux_intransit_even, flux_intransit
+            )
+        else:  # odd
+            all_flux_intransit_odd = np.append(
+                all_flux_intransit_odd, flux_intransit
+            )
+        if len(all_flux_intransit_odd) > 0:
+            depth_mean_odd = np.mean(all_flux_intransit_odd)
+
+            depth_mean_odd_std = np.std(all_flux_intransit_odd) / np.sum(
+                len(all_flux_intransit_odd)
+            ) ** (0.5)
+        if len(all_flux_intransit_even) > 0:
+            depth_mean_even = np.mean(all_flux_intransit_even)
+            depth_mean_even_std = np.std(all_flux_intransit_even) / np.sum(
+                len(all_flux_intransit_even)
+            ) ** (0.5)
+
+    return (
+        depth_mean_odd,
+        depth_mean_even,
+        depth_mean_odd_std,
+        depth_mean_even_std,
+        all_flux_intransit_odd,
+        all_flux_intransit_even,
+        per_transit_count,
+        transit_depths,
+        transit_depths_uncertainties,
+    )
+
+
+def snr_stats(
+    t,
+    y,
+    period,
+    duration,
+    T0,
+    transit_times,
+    transit_duration_in_days,
+    per_transit_count,
+):
+    """Return snr_per_transit and snr_pink_per_transit"""
+
+    snr_per_transit = np.zeros([len(transit_times)])
+    snr_pink_per_transit = np.zeros([len(transit_times)])
+    intransit = transit_mask(t, period, 2 * duration, T0)
+    flux_ootr = y[~intransit]
+
+    try:
+        pinknoise = pink_noise(flux_ootr, int(np.mean(per_transit_count)))
+    except:
+        pinknoise = np.nan
+
+    # Estimate SNR and pink SNR
+    # Second run because now the out of transit points are known
+    if len(flux_ootr) > 0:
+        std = np.std(flux_ootr)
+    else:
+        std = np.nan
+    for i in range(len(transit_times)):
+        mid_transit = transit_times[i]
+        tmin = mid_transit - 0.5 * transit_duration_in_days
+        tmax = mid_transit + 0.5 * transit_duration_in_days
+        if np.isnan(tmin) or np.isnan(tmax):
+            idx_intransit = []
+            mean_flux = np.nan
+        else:
+            idx_intransit = np.where(np.logical_and(t > tmin, t < tmax))
+            if len(y[idx_intransit]) > 0:
+                mean_flux = np.mean(y[idx_intransit])
+            else:
+                mean_flux = np.nan
+
+        intransit_points = np.size(y[idx_intransit])
+        try:
+            snr_pink_per_transit[i] = (1 - mean_flux) / pinknoise
+            if intransit_points > 0 and not np.isnan(std):
+                std_binned = std / intransit_points ** 0.5
+                snr_per_transit[i] = (1 - mean_flux) / std_binned
+            else:
+                snr_per_transit[i] = 0
+                snr_pink_per_transit[i] = 0
+        except:
+            snr_per_transit[i] = 0
+            snr_pink_per_transit[i] = 0
+
+    return snr_per_transit, snr_pink_per_transit
+
+
+def all_transit_times(t0, t, period):
+    """Return all mid-transit times within t"""
+
+    if t0 < min(t):
+        transit_times = [t0 + period]
+    else:
+        transit_times = [t0]
+    previous_transit_time = transit_times[0]
+    transit_number = 0
+    while True:
+        transit_number = transit_number + 1
+        next_transit_time = previous_transit_time + period
+        if next_transit_time < (np.min(t) + (np.max(t) - np.min(t))):
+            transit_times.append(next_transit_time)
+            previous_transit_time = next_transit_time
+        else:
+            break
+    return transit_times
 
 
 
@@ -191,6 +382,10 @@ def fit(time, flux, yerr, n_it, bounds=None, moon=True, live_points=750, batches
             minimize=True
             )
         """
+
+        
+
+
         solver = JADE(
             log_likelihood,
             n_dim=ndim,
@@ -208,6 +403,8 @@ def fit(time, flux, yerr, n_it, bounds=None, moon=True, live_points=750, batches
         
         evals = popsize * iterations
         return (log_likelihood(result), result, evals, verlauf, list_logls, list_periods)
+
+    
 
     # Bounds for planet-only model
     planet_bounds = {
@@ -228,6 +425,14 @@ def fit(time, flux, yerr, n_it, bounds=None, moon=True, live_points=750, batches
     bounds = list(planet_bounds.values())
     #print("bounds", bounds)
     ndim = 7
+
+    # BIC baseline
+    no_points = len(flux)
+    loglike_baseline = -0.5 * np.nansum(((flux - 1) / yerr)**2)
+    print(loglike_baseline, "loglike base model")
+    BIC_baseline = 1 * np.log(no_points) - 2 * (loglike_baseline)
+    print("BIC_baseline", BIC_baseline)
+    print("points", no_points)
 
     popsize = int(live_points / ndim)  # popsize is live_points / ndim e.g. 750/15=50
     nobs = len(flux)
@@ -256,7 +461,7 @@ def fit(time, flux, yerr, n_it, bounds=None, moon=True, live_points=750, batches
     pool.join() 
     #pbar.close()
     best_logl = max(rlist_ll)
-    no_points = len(flux)#[0]
+    
 
     #print(list_logls)
     #print(list_logls)
@@ -279,7 +484,7 @@ def fit(time, flux, yerr, n_it, bounds=None, moon=True, live_points=750, batches
     arr1inds = list_periods.argsort()
     list_logls = list_logls[arr1inds]
     list_periods = list_periods[arr1inds]
-
+    """
     print(len(list_logls))
     print(max(list_logls))
     print(min(list_logls))
@@ -316,7 +521,7 @@ def fit(time, flux, yerr, n_it, bounds=None, moon=True, live_points=750, batches
 
 
     #print(list_logls)
-
+    """
     #plt.close()
     #plt.clf()
     #plt.plot(np.linspace(0, len(rlist_verlauf[0]), len(rlist_verlauf[0])), rlist_verlauf[0])
@@ -324,13 +529,56 @@ def fit(time, flux, yerr, n_it, bounds=None, moon=True, live_points=750, batches
     #plt.yscale("log")
     #plt.xlim(0, len(rlist_verlauf[0]))
     #plt.show()
+
+
+
     BIC = ndim * np.log(no_points) - 2 * best_logl
-    AIC = 2 * ndim - 2 * best_logl
+    print(best_logl, "best_logl")
+    print(round(BIC_baseline, 1), "BIC_baseline")
+    print(round(BIC, 1), "BIC")
+    #AIC = 2 * ndim - 2 * best_logl
     best_popt = rlist_popt[np.argmax(rlist_ll)]
+    deltaBIC = BIC_baseline - BIC
+    print(round(deltaBIC, 1), "deltaBIC")
+    if deltaBIC > 10:
+        print("Strong evidence for the planet model")
+    if deltaBIC < 0:
+        print("Negative evidence for the planet model")
+
+    # Try model with half the period
+    p_half = best_popt.copy()
+    p_half[0] /= 2
+    lc_half = log_likelihood(p_half)
+    BIC_lc_half = ndim * np.log(no_points) - 2 * lc_half
+    print(BIC_lc_half, "BIC half period")
+    if BIC_lc_half < BIC:
+        print("Model with half the period is better")
+
+    # Try model with half the period, shifted by half phase
+    p_half = best_popt.copy()
+    p_half[0] /= 2
+    p_half[4] += 0.5
+    if p_half[4] > 1:
+        p_half[4] -= 1
+    lc_half = log_likelihood(p_half)
+    BIC_lc_half = ndim * np.log(no_points) - 2 * lc_half
+    print(BIC_lc_half, "BIC half period")
+    if BIC_lc_half < BIC:
+        print("Model with half the period (shifted half phase) is better")
+
+    # Try model with twice the period
+    p_twice = best_popt.copy()
+    p_twice[0] *= 2
+    lc_twice = log_likelihood(p_twice)
+    BIC_lc_twice = ndim * np.log(no_points) - 2 * lc_twice
+    print(BIC_lc_twice, "BIC twice period")
+    if BIC_lc_twice < BIC:
+        print("Model with twice the period is better")
+
 
     # Convert phase to T0
     phase = best_popt[4]
-    phase = best_popt[4]
+    #phase = best_popt[4]
     period = best_popt[0]
     t0 = phase * period
     while t0 < min(time):
@@ -345,20 +593,110 @@ def fit(time, flux, yerr, n_it, bounds=None, moon=True, live_points=750, batches
     best_popt[1] = a
     #print("M_star", M_star)
     #print("a", a)
-
-
     q1 = best_popt[5]
     q2 = best_popt[6]
     u1, u2 = ld_convert(q1, q2)
     best_popt[5] = u1
     best_popt[6] = u2
-    
 
+    # SNR calculation
+    in_transit_mask = np.where(lc(best_popt, time) < 1)
+    in_transit_points_data = len(flux[in_transit_mask])
+    S = np.mean(1-flux[in_transit_mask])
+    N = np.mean(yerr[in_transit_mask]) / np.sqrt(in_transit_points_data)
+    SNR = S / N
+    # SNR is wrong: should scale linearly with number of transits (?)
+
+    print("Maximum Likelihood Estimation from Ensemble-JADE")
+    headers = ["Parameter", "Name", "Unit", "MLE value"]
+    table = [
+        ["per", "Period",                       "days", round(best_popt[0], 5)],
+        ["a",   "Semi-major axis",              "R٭",   round(best_popt[1], 5)],
+        ["r",   "Radius",                       "R٭",   round(best_popt[2], 5)],
+        ["b",   "Impact parameter",             1,      round(best_popt[3], 5)],
+        ["t0",  "Time of inferior conjunction", "days", round(best_popt[4], 5)],
+        ["u1",  "Quadratic limb-darkening u1",  1,      round(best_popt[5], 5)],
+        ["u2",  "Quadratic limb-darkening u2",  1,      round(best_popt[6], 5)],
+        ["ecc", "Eccentricity",                 1,      "0 (fixed)"],
+        ["w",   "Argument of periapsis",        "deg",  "0 (fixed)"]
+        ]
+    print(tabulate(table, headers=headers))
+    print("")
+    headers = ["Model statistic", "Value", "Comment"]
+    if deltaBIC < 0:
+        BIC_comment = "No"
+    elif deltaBIC >= 0 and deltaBIC < 2.3:
+        BIC_comment = "Weak"
+    elif deltaBIC >=2.3 and deltaBIC < 4.61:
+        BIC_comment = "Substantial"
+    elif deltaBIC >=4.61 and deltaBIC < 6.91:
+        BIC_comment = "Strong"
+    elif deltaBIC >=6.91 and deltaBIC < 9.21:
+        BIC_comment = "Very strong"
+    else: 
+        BIC_comment = "Decisive"
+    BIC_comment += " evidence for the planet model"
+
+    if SNR < 7.1:
+        SNR_comment = "<7.1: not significant (Borucki+ 2011)"
+    elif SNR >= 7.1 and SNR < 10:
+        SNR_comment = ">7.1: significant (Borucki+ 2011)"
+    else:
+        SNR_comment = ">10: highly significant (Howard+ 2011)"
+
+    table = [
+        ["Minimum log-likelihood",      round(best_logl, 1)],
+        ["Reduced chi²"],
+        ["ΔBIC",                        round(deltaBIC, 1), BIC_comment],
+        ["Signal-to-noise ratio (SNR)", round(SNR, 1),      SNR_comment],
+        ["Odd-even mismatch",         "X.Xσ"],
+        ["Transit count (with data)", "X (X)"]
+        ]
+    print(tabulate(table, headers=headers))
+
+    transit_times = all_transit_times(t0=best_popt[4], t=time, period=best_popt[0])
+    print(transit_times)
+
+    per = best_popt[0]
+    a = best_popt[1]
+    tdur = per / np.pi * np.arcsin(1 / a)
+    print("tdur", tdur)
+    #if ecc_bary > 0:
+    #    tdur /= 1 / sqrt(1 - ecc_bary ** 2) * (1 + ecc_bary * cos((w_bary - 90) / 180 * pi))
+
+    depth_mean_odd, depth_mean_even, depth_mean_odd_std, depth_mean_even_std, all_flux_intransit_odd, all_flux_intransit_even, per_transit_count, transit_depths, transit_depths_uncertainties = intransit_stats(time, flux, transit_times, tdur)
+    print(depth_mean_odd,
+        depth_mean_even,
+        depth_mean_odd_std,
+        depth_mean_even_std,
+        all_flux_intransit_odd,
+        all_flux_intransit_even,
+        per_transit_count,
+        transit_depths,
+        transit_depths_uncertainties)
+
+    # Odd even mismatch in standard deviations
+    odd_even_difference = abs(depth_mean_odd - depth_mean_even)
+    odd_even_std_sum = depth_mean_odd_std + depth_mean_even_std
+    odd_even_mismatch = odd_even_difference / odd_even_std_sum
+    print("odd_even_mismatch", odd_even_mismatch)
+
+    """
+    snr_per_transit, snr_pink_per_transit = 
+        snr_stats(
+        time,
+        flux,
+        period=per,
+        duration,
+        T0,
+        transit_times,
+        transit_duration_in_days,
+        per_transit_count,
+    """
 
     result_dict = {
        "logl": best_logl,
        "BIC": BIC,
-       "AIC": AIC,
        "points": best_popt
        }
     return result_dict
