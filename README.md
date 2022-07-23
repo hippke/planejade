@@ -1,7 +1,7 @@
 ![Logo](https://github.com/hippke/planejade/blob/main/logo_planejade.png?raw=true)
 ====================
 
-## Optimal sensitivity for exoplanet transit search with simultaneous stellar noise detrending.
+## Optimal sensitivity for exoplanet transit search with simultaneous stellar noise detrending
 
 [![pip](https://img.shields.io/badge/pip-install%20planejade-blue.svg)](https://pypi.org/project/planejade/)
 [![Documentation](https://img.shields.io/badge/documentation-%E2%9C%93-blue.svg)](https://planejade.readthedocs.io/en/latest/index.html)
